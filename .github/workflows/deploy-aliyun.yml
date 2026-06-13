@@ -35,7 +35,8 @@ jobs:
             --exclude='./dev.db' \
             --exclude='./release.tgz' \
             --exclude='./*.log' \
-            -czf release.tgz .
+            -czf "$RUNNER_TEMP/release.tgz" .
+          cp "$RUNNER_TEMP/release.tgz" release.tgz
 
       - name: Upload release archive to ECS
         uses: appleboy/scp-action@v0.1.7
