@@ -1,0 +1,58 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Recording {
+  id              Int            @id @default(autoincrement())
+  name            String
+  mimeType        String
+  duration        Float
+  audio           Bytes
+  size            Int
+  userId          Int?
+  accompanimentId Int?
+  user            User?          @relation(fields: [userId], references: [id])
+  accompaniment   Accompaniment? @relation(fields: [accompanimentId], references: [id])
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+}
+
+model Accompaniment {
+  id         Int         @id @default(autoincrement())
+  name       String
+  mimeType   String
+  duration   Float      @default(0)
+  audio      Bytes
+  size       Int
+  userId     Int?
+  user       User?       @relation(fields: [userId], references: [id])
+  recordings Recording[]
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+}
+
+model User {
+  id             Int             @id @default(autoincrement())
+  googleId       String          @unique
+  email          String          @unique
+  name           String
+  avatarUrl      String?
+  sessions       AuthSession[]
+  recordings     Recording[]
+  accompaniments Accompaniment[]
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+}
+
+model AuthSession {
+  id        Int      @id @default(autoincrement())
+  tokenHash String   @unique
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
