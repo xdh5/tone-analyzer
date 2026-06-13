@@ -132,17 +132,53 @@ jobs:
                 printf '%s\n' '}'
               } > /etc/caddy/conf.d/tone.caddy
 
-              touch /etc/caddy/Caddyfile
-              if ! grep -q 'import /etc/caddy/conf.d/\*.caddy' /etc/caddy/Caddyfile; then
-                printf '\nimport /etc/caddy/conf.d/*.caddy\n' >> /etc/caddy/Caddyfile
+              CADDYFILE=/etc/caddy/Caddyfile
+              CADDY_BACKUP=/etc/caddy/Caddyfile.before-tone
+              if [ -f "$CADDYFILE" ] && [ ! -f "$CADDY_BACKUP" ]; then
+                cp "$CADDYFILE" "$CADDY_BACKUP"
               fi
 
-              caddy fmt --overwrite /etc/caddy/Caddyfile
+              if [ -f "$CADDY_BACKUP" ]; then
+                awk -v host="$PUBLIC_HOST" '
+                  function brace_delta(text, opened, closed) {
+                    opened = gsub(/\{/, "{", text)
+                    closed = gsub(/\}/, "}", text)
+                    return opened - closed
+                  }
+                  $0 ~ host && $0 ~ /\{/ {
+                    skip = 1
+                    depth = brace_delta($0)
+                    if (depth <= 0) {
+                      skip = 0
+                    }
+                    next
+                  }
+                  skip {
+                    depth += brace_delta($0)
+                    if (depth <= 0) {
+                      skip = 0
+                    }
+                    next
+                  }
+                  $0 !~ /import \/etc\/caddy\/conf\.d\/\*\.caddy/ {
+                    print
+                  }
+                ' "$CADDY_BACKUP" > "$CADDYFILE"
+              else
+                : > "$CADDYFILE"
+              fi
+
+              if ! grep -q 'import /etc/caddy/conf.d/\*.caddy' "$CADDYFILE"; then
+                printf '\nimport /etc/caddy/conf.d/*.caddy\n' >> "$CADDYFILE"
+              fi
+
+              caddy fmt --overwrite "$CADDYFILE"
               caddy fmt --overwrite /etc/caddy/conf.d/tone.caddy
+              caddy validate --config "$CADDYFILE"
               if command -v systemctl >/dev/null 2>&1; then
                 systemctl reload caddy || systemctl restart caddy
               else
-                caddy reload --config /etc/caddy/Caddyfile
+                caddy reload --config "$CADDYFILE"
               fi
             fi
 
