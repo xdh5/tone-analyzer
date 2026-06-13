@@ -123,17 +123,43 @@ jobs:
               npm install -g pm2
             fi
 
+            if command -v caddy >/dev/null 2>&1; then
+              mkdir -p /etc/caddy/conf.d
+              {
+                printf 'http://%s {\n' "$PUBLIC_HOST"
+                printf '%s\n' '  encode gzip'
+                printf '  reverse_proxy 127.0.0.1:%s\n' "$APP_PORT"
+                printf '%s\n' '}'
+              } > /etc/caddy/conf.d/tone.caddy
+
+              touch /etc/caddy/Caddyfile
+              if ! grep -q 'import /etc/caddy/conf.d/\*.caddy' /etc/caddy/Caddyfile; then
+                printf '\nimport /etc/caddy/conf.d/*.caddy\n' >> /etc/caddy/Caddyfile
+              fi
+
+              caddy fmt --overwrite /etc/caddy/Caddyfile
+              caddy fmt --overwrite /etc/caddy/conf.d/tone.caddy
+              if command -v systemctl >/dev/null 2>&1; then
+                systemctl reload caddy || systemctl restart caddy
+              else
+                caddy reload --config /etc/caddy/Caddyfile
+              fi
+            fi
+
             RELEASE_DIR="$APP_DIR/releases/$RELEASE_SHA"
             DATA_DIR="$APP_DIR/shared/data"
             NPM_CACHE_DIR="$APP_DIR/shared/npm-cache"
+            NODE_MODULES_DIR="$APP_DIR/shared/node_modules"
             DATABASE_URL="file:$DATA_DIR/prod.db"
 
             mkdir -p "$DATA_DIR"
             mkdir -p "$NPM_CACHE_DIR"
+            mkdir -p "$NODE_MODULES_DIR"
             rm -rf "$RELEASE_DIR"
             mkdir -p "$RELEASE_DIR"
             tar -xzf "/tmp/tone-release-$RELEASE_SHA/release.tgz" -C "$RELEASE_DIR"
             cd "$RELEASE_DIR"
+            ln -sfn "$NODE_MODULES_DIR" node_modules
 
             cat > .env <<ENVFILE
             DATABASE_URL="$DATABASE_URL"
@@ -141,7 +167,7 @@ jobs:
             GOOGLE_CLIENT_SECRET="$GOOGLE_CLIENT_SECRET"
             ENVFILE
 
-            npm ci --cache "$NPM_CACHE_DIR" --prefer-offline --no-audit --no-fund
+            npm install --cache "$NPM_CACHE_DIR" --prefer-offline --no-audit --no-fund
             npx prisma generate
             npx prisma db push
             npm run build
@@ -157,25 +183,5 @@ jobs:
             pm2 delete "$APP_NAME" >/dev/null 2>&1 || true
             pm2 start "$RELEASE_DIR/.output/server/index.mjs" --name "$APP_NAME" --time
             pm2 save
-
-            if command -v caddy >/dev/null 2>&1; then
-              {
-                printf '%s\n' '{'
-                printf '%s\n' '  auto_https off'
-                printf '%s\n' '}'
-                printf '%s\n' ''
-                printf 'http://%s {\n' "$PUBLIC_HOST"
-                printf '%s\n' '  encode gzip'
-                printf '  reverse_proxy 127.0.0.1:%s\n' "$APP_PORT"
-                printf '%s\n' '}'
-              } > /etc/caddy/Caddyfile
-
-              caddy fmt --overwrite /etc/caddy/Caddyfile
-              if command -v systemctl >/dev/null 2>&1; then
-                systemctl reload caddy || systemctl restart caddy
-              else
-                caddy reload --config /etc/caddy/Caddyfile
-              fi
-            fi
 
             find "$APP_DIR/releases" -mindepth 1 -maxdepth 1 -type d | sort | head -n -5 | xargs -r rm -rf
