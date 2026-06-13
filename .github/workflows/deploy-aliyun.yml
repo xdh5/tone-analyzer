@@ -13,7 +13,7 @@ env:
   ECS_SSH_PORT: 22
   ECS_APP_DIR: /opt/tone
   ECS_APP_PORT: 3002
-  PUBLIC_HOST: cyberlab.bond
+  PUBLIC_HOST: tone.cyberlab.bond
   GOOGLE_CLIENT_ID: 1010309636967-11b7nr9oso4i333mmlgh44osevmpl7ru.apps.googleusercontent.com
 
 jobs:
@@ -132,40 +132,8 @@ jobs:
               fi
 
               {
-                printf '%s {\n' "$PUBLIC_HOST"
+                printf '%s\n' 'cyberlab.bond {'
                 printf '%s\n' '    encode gzip zstd'
-                printf '%s\n' ''
-                printf '%s\n' '    handle /tone* {'
-                printf '        reverse_proxy 172.17.0.1:%s\n' "$APP_PORT"
-                printf '%s\n' '    }'
-                printf '%s\n' ''
-                printf '%s\n' '    handle /_nuxt/* {'
-                printf '        reverse_proxy 172.17.0.1:%s\n' "$APP_PORT"
-                printf '%s\n' '    }'
-                printf '%s\n' ''
-                printf '%s\n' '    handle /manifest.webmanifest {'
-                printf '        reverse_proxy 172.17.0.1:%s\n' "$APP_PORT"
-                printf '%s\n' '    }'
-                printf '%s\n' ''
-                printf '%s\n' '    handle /sw.js {'
-                printf '        reverse_proxy 172.17.0.1:%s\n' "$APP_PORT"
-                printf '%s\n' '    }'
-                printf '%s\n' ''
-                printf '%s\n' '    handle /icons/* {'
-                printf '        reverse_proxy 172.17.0.1:%s\n' "$APP_PORT"
-                printf '%s\n' '    }'
-                printf '%s\n' ''
-                printf '%s\n' '    handle /api/auth* {'
-                printf '        reverse_proxy 172.17.0.1:%s\n' "$APP_PORT"
-                printf '%s\n' '    }'
-                printf '%s\n' ''
-                printf '%s\n' '    handle /api/recordings* {'
-                printf '        reverse_proxy 172.17.0.1:%s\n' "$APP_PORT"
-                printf '%s\n' '    }'
-                printf '%s\n' ''
-                printf '%s\n' '    handle /api/accompaniments* {'
-                printf '        reverse_proxy 172.17.0.1:%s\n' "$APP_PORT"
-                printf '%s\n' '    }'
                 printf '%s\n' ''
                 printf '%s\n' '    handle /api/* {'
                 printf '%s\n' '        reverse_proxy backend-server:8000'
@@ -176,6 +144,12 @@ jobs:
                 printf '%s\n' '        try_files {path} /index.html'
                 printf '%s\n' '        file_server'
                 printf '%s\n' '    }'
+                printf '%s\n' '}'
+                printf '%s\n' ''
+                printf '%s {\n' "$PUBLIC_HOST"
+                printf '%s\n' '    encode gzip zstd'
+                printf '%s\n' ''
+                printf '    reverse_proxy 172.17.0.1:%s\n' "$APP_PORT"
                 printf '%s\n' '}'
               } > "$CADDYFILE"
 
