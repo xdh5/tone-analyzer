@@ -2,7 +2,7 @@
   <main class="list-page">
     <section class="list-shell">
       <header class="page-header">
-        <NuxtLink class="icon-link" to="/tone/recording" aria-label="返回" title="返回">
+        <NuxtLink class="icon-link" to="/recording" aria-label="返回" title="返回">
           <i class="bi bi-chevron-left"></i>
         </NuxtLink>
         <h1>伴奏跟唱</h1>
@@ -29,7 +29,7 @@
         <h2>已上传伴奏</h2>
         <div v-if="accompaniments.length === 0" class="empty-row">还没有伴奏</div>
         <div v-for="item in accompaniments" :key="item.id" class="list-row">
-          <NuxtLink class="media-link" :to="`/tone/practice/${item.id}`">
+          <NuxtLink class="media-link" :to="`/practice/${item.id}`">
             <i class="bi bi-music-note-beamed"></i>
             <span>{{ item.name }}</span>
             <small>{{ formatTime(item.duration) }}</small>

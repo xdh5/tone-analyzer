@@ -1,10 +1,9 @@
-const CACHE_NAME = 'tone-v1'
+const CACHE_NAME = 'tone'
 const APP_SHELL = [
   '/',
-  '/tone',
-  '/tone/recording',
-  '/tone/accompaniments',
-  '/tone/recordings',
+  '/recording',
+  '/accompaniments',
+  '/recordings',
   '/manifest.webmanifest'
 ]
 
@@ -39,6 +38,6 @@ self.addEventListener('fetch', (event) => {
         caches.open(CACHE_NAME).then((cache) => cache.put(request, copy))
         return response
       })
-      .catch(() => caches.match(request).then((cached) => cached || caches.match('/tone')))
+      .catch(() => caches.match(request).then((cached) => cached || caches.match('/')))
   )
 })

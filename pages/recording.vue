@@ -2,7 +2,7 @@
   <main class="module-menu">
     <section class="module-shell">
       <header class="page-header">
-        <NuxtLink class="icon-link" to="/tone" aria-label="返回" title="返回">
+        <NuxtLink class="icon-link" to="/" aria-label="返回" title="返回">
           <i class="bi bi-chevron-left"></i>
         </NuxtLink>
         <h1>录音模块</h1>
@@ -10,7 +10,7 @@
       </header>
 
       <nav class="module-list" aria-label="录音模块菜单">
-        <NuxtLink class="module-row primary" to="/tone/record">
+        <NuxtLink class="module-row primary" to="/record">
           <span class="module-icon"><i class="bi bi-mic-fill"></i></span>
           <span class="module-copy">
             <strong>自由录音</strong>
@@ -19,7 +19,7 @@
           <i class="bi bi-chevron-right"></i>
         </NuxtLink>
 
-        <NuxtLink class="module-row" to="/tone/accompaniments">
+        <NuxtLink class="module-row" to="/accompaniments">
           <span class="module-icon"><i class="bi bi-music-note-beamed"></i></span>
           <span class="module-copy">
             <strong>伴奏跟唱</strong>
@@ -28,7 +28,7 @@
           <i class="bi bi-chevron-right"></i>
         </NuxtLink>
 
-        <NuxtLink class="module-row" to="/tone/recordings">
+        <NuxtLink class="module-row" to="/recordings">
           <span class="module-icon"><i class="bi bi-collection-play"></i></span>
           <span class="module-copy">
             <strong>录音记录</strong>

@@ -25,7 +25,7 @@ npm run dev
 Local app:
 
 ```text
-http://localhost:3000/tone
+http://localhost:3000/
 ```
 
 ## Build

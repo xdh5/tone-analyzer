@@ -96,5 +96,5 @@ export default defineEventHandler(async (event) => {
   })
 
   setSessionCookie(event, token)
-  return sendRedirect(event, '/tone')
+  return sendRedirect(event, '/')
 })

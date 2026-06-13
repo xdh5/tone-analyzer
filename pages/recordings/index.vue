@@ -2,7 +2,7 @@
   <main class="list-page">
     <section class="list-shell">
       <header class="page-header">
-        <NuxtLink class="icon-link" to="/tone/recording" aria-label="返回" title="返回">
+        <NuxtLink class="icon-link" to="/recording" aria-label="返回" title="返回">
           <i class="bi bi-chevron-left"></i>
         </NuxtLink>
         <h1>录音记录</h1>
@@ -13,7 +13,7 @@
         <h2>已保存录音</h2>
         <div v-if="recordings.length === 0" class="empty-row">还没有保存的录音</div>
         <div v-for="item in recordings" :key="item.id" class="list-row">
-          <NuxtLink class="recording-link" :to="`/tone/recordings/${item.id}`">
+          <NuxtLink class="recording-link" :to="`/recordings/${item.id}`">
             <i class="bi bi-play-fill"></i>
             <span>
               <strong>{{ item.name }}</strong>

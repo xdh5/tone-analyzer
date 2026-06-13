@@ -196,7 +196,7 @@ jobs:
             pm2 start "$RELEASE_DIR/.output/server/index.mjs" --name "$APP_NAME" --time
             pm2 save
 
-            curl -fsSI "https://$PUBLIC_HOST/tone" | tee /tmp/tone-deploy-check.txt
+            curl -fsSI "https://$PUBLIC_HOST/" | tee /tmp/tone-deploy-check.txt
             if grep -q ' 502 ' /tmp/tone-deploy-check.txt; then
               echo "TONE route is still returning 502."
               if command -v caddy >/dev/null 2>&1; then

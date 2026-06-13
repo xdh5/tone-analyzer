@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <section class="tracker-page">
     <header class="tracker-header">
       <NuxtLink class="header-button" :to="analyzerBackTo" aria-label="返回" title="返回">
@@ -213,9 +213,9 @@ const accompanimentId = computed(() => Number(props.accompanimentId || 0))
 const isReadOnlyPlayback = computed(() => props.mode === 'playback' && Number.isFinite(recordingId.value) && recordingId.value > 0)
 const isAccompanimentMode = computed(() => props.mode === 'practice' && Number.isFinite(accompanimentId.value) && accompanimentId.value > 0)
 const analyzerBackTo = computed(() => {
-  if (props.mode === 'playback') return '/tone/recordings'
-  if (props.mode === 'practice') return '/tone/accompaniments'
-  return '/tone/recording'
+  if (props.mode === 'playback') return '/recordings'
+  if (props.mode === 'practice') return '/accompaniments'
+  return '/recording'
 })
 const analyzerTitle = computed(() => {
   if (props.mode === 'playback') return '录音回放'

@@ -2,7 +2,7 @@
   "name": "TONE",
   "short_name": "TONE",
   "description": "实时音高录音与伴奏跟唱工具",
-  "start_url": "/tone",
+  "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
