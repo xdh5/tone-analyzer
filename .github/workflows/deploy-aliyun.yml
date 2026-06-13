@@ -56,6 +56,7 @@ jobs:
           APP_NAME: ${{ env.APP_NAME }}
           APP_DIR: ${{ env.ECS_APP_DIR }}
           APP_PORT: ${{ env.ECS_APP_PORT }}
+          PUBLIC_HOST: ${{ env.ECS_HOST }}
           RELEASE_SHA: ${{ github.sha }}
           GOOGLE_CLIENT_ID: ${{ env.GOOGLE_CLIENT_ID }}
           GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
@@ -64,7 +65,7 @@ jobs:
           username: ${{ env.ECS_USERNAME }}
           key: ${{ secrets.ECS_SSH_KEY }}
           port: ${{ env.ECS_SSH_PORT }}
-          envs: APP_NAME,APP_DIR,APP_PORT,RELEASE_SHA,GOOGLE_CLIENT_ID,GOOGLE_CLIENT_SECRET
+          envs: APP_NAME,APP_DIR,APP_PORT,PUBLIC_HOST,RELEASE_SHA,GOOGLE_CLIENT_ID,GOOGLE_CLIENT_SECRET
           script: |
             set -eu
 
@@ -141,5 +142,25 @@ jobs:
             pm2 delete "$APP_NAME" >/dev/null 2>&1 || true
             pm2 start "$RELEASE_DIR/.output/server/index.mjs" --name "$APP_NAME" --time
             pm2 save
+
+            if command -v caddy >/dev/null 2>&1; then
+              {
+                printf '%s\n' '{'
+                printf '%s\n' '  auto_https off'
+                printf '%s\n' '}'
+                printf '%s\n' ''
+                printf 'http://%s {\n' "$PUBLIC_HOST"
+                printf '%s\n' '  encode gzip'
+                printf '  reverse_proxy 127.0.0.1:%s\n' "$APP_PORT"
+                printf '%s\n' '}'
+              } > /etc/caddy/Caddyfile
+
+              caddy fmt --overwrite /etc/caddy/Caddyfile
+              if command -v systemctl >/dev/null 2>&1; then
+                systemctl reload caddy || systemctl restart caddy
+              else
+                caddy reload --config /etc/caddy/Caddyfile
+              fi
+            fi
 
             find "$APP_DIR/releases" -mindepth 1 -maxdepth 1 -type d | sort | head -n -5 | xargs -r rm -rf
