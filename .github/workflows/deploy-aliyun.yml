@@ -65,35 +65,48 @@ jobs:
           username: ${{ env.ECS_USERNAME }}
           key: ${{ secrets.ECS_SSH_KEY }}
           port: ${{ env.ECS_SSH_PORT }}
+          command_timeout: 30m
           envs: APP_NAME,APP_DIR,APP_PORT,PUBLIC_HOST,RELEASE_SHA,GOOGLE_CLIENT_ID,GOOGLE_CLIENT_SECRET
           script: |
             set -eu
 
-            if command -v apt-get >/dev/null 2>&1; then
-              apt-get update
-              DEBIAN_FRONTEND=noninteractive apt-get install -y \
-                ca-certificates \
-                curl \
-                tar \
-                gzip \
-                findutils \
-                openssl \
-                python3 \
-                build-essential
-            elif command -v yum >/dev/null 2>&1; then
-              yum install -y \
-                ca-certificates \
-                curl \
-                tar \
-                gzip \
-                findutils \
-                openssl \
-                python3 \
-                make \
-                gcc-c++
-            else
-              echo "No supported package manager found."
-              exit 1
+            NEED_SYSTEM_DEPS=0
+            for DEP_CMD in curl tar gzip find openssl python3 make; do
+              if ! command -v "$DEP_CMD" >/dev/null 2>&1; then
+                NEED_SYSTEM_DEPS=1
+              fi
+            done
+            if ! command -v gcc >/dev/null 2>&1 || ! command -v g++ >/dev/null 2>&1; then
+              NEED_SYSTEM_DEPS=1
+            fi
+
+            if [ "$NEED_SYSTEM_DEPS" = "1" ]; then
+              if command -v apt-get >/dev/null 2>&1; then
+                apt-get update
+                DEBIAN_FRONTEND=noninteractive apt-get install -y \
+                  ca-certificates \
+                  curl \
+                  tar \
+                  gzip \
+                  findutils \
+                  openssl \
+                  python3 \
+                  build-essential
+              elif command -v yum >/dev/null 2>&1; then
+                yum install -y \
+                  ca-certificates \
+                  curl \
+                  tar \
+                  gzip \
+                  findutils \
+                  openssl \
+                  python3 \
+                  make \
+                  gcc-c++
+              else
+                echo "No supported package manager found."
+                exit 1
+              fi
             fi
 
             if ! command -v npm >/dev/null 2>&1; then
@@ -112,9 +125,11 @@ jobs:
 
             RELEASE_DIR="$APP_DIR/releases/$RELEASE_SHA"
             DATA_DIR="$APP_DIR/shared/data"
+            NPM_CACHE_DIR="$APP_DIR/shared/npm-cache"
             DATABASE_URL="file:$DATA_DIR/prod.db"
 
             mkdir -p "$DATA_DIR"
+            mkdir -p "$NPM_CACHE_DIR"
             rm -rf "$RELEASE_DIR"
             mkdir -p "$RELEASE_DIR"
             tar -xzf "/tmp/tone-release-$RELEASE_SHA/release.tgz" -C "$RELEASE_DIR"
@@ -126,7 +141,7 @@ jobs:
             GOOGLE_CLIENT_SECRET="$GOOGLE_CLIENT_SECRET"
             ENVFILE
 
-            npm ci
+            npm ci --cache "$NPM_CACHE_DIR" --prefer-offline --no-audit --no-fund
             npx prisma generate
             npx prisma db push
             npm run build
