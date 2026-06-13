@@ -13,6 +13,7 @@ env:
   ECS_SSH_PORT: 22
   ECS_APP_DIR: /opt/tone
   ECS_APP_PORT: 3002
+  PUBLIC_HOST: cyberlab.bond
   GOOGLE_CLIENT_ID: 1010309636967-11b7nr9oso4i333mmlgh44osevmpl7ru.apps.googleusercontent.com
 
 jobs:
@@ -56,7 +57,7 @@ jobs:
           APP_NAME: ${{ env.APP_NAME }}
           APP_DIR: ${{ env.ECS_APP_DIR }}
           APP_PORT: ${{ env.ECS_APP_PORT }}
-          PUBLIC_HOST: ${{ env.ECS_HOST }}
+          PUBLIC_HOST: ${{ env.PUBLIC_HOST }}
           RELEASE_SHA: ${{ github.sha }}
           GOOGLE_CLIENT_ID: ${{ env.GOOGLE_CLIENT_ID }}
           GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
@@ -124,56 +125,65 @@ jobs:
             fi
 
             if command -v caddy >/dev/null 2>&1; then
-              mkdir -p /etc/caddy/conf.d
-              {
-                printf 'http://%s {\n' "$PUBLIC_HOST"
-                printf '%s\n' '  encode gzip'
-                printf '  reverse_proxy 127.0.0.1:%s\n' "$APP_PORT"
-                printf '%s\n' '}'
-              } > /etc/caddy/conf.d/tone.caddy
-
               CADDYFILE=/etc/caddy/Caddyfile
               CADDY_BACKUP=/etc/caddy/Caddyfile.before-tone
+              TONE_ROUTES=/tmp/tone-caddy-routes
+
+              {
+                printf '%s\n' '  # tone-start'
+                printf '%s\n' '  @tone path /tone* /_nuxt/* /api/* /manifest.webmanifest /sw.js /icons/*'
+                printf '%s\n' '  handle @tone {'
+                printf '    reverse_proxy 127.0.0.1:%s\n' "$APP_PORT"
+                printf '%s\n' '  }'
+                printf '%s\n' '  # tone-end'
+              } > "$TONE_ROUTES"
+
               if [ -f "$CADDYFILE" ] && [ ! -f "$CADDY_BACKUP" ]; then
                 cp "$CADDYFILE" "$CADDY_BACKUP"
               fi
+              touch "$CADDYFILE"
+              rm -f /etc/caddy/conf.d/tone.caddy
 
-              if [ -f "$CADDY_BACKUP" ]; then
-                awk -v host="$PUBLIC_HOST" '
-                  function brace_delta(text, opened, closed) {
-                    opened = gsub(/\{/, "{", text)
-                    closed = gsub(/\}/, "}", text)
-                    return opened - closed
-                  }
-                  $0 ~ host && $0 ~ /\{/ {
-                    skip = 1
-                    depth = brace_delta($0)
-                    if (depth <= 0) {
-                      skip = 0
-                    }
-                    next
-                  }
-                  skip {
-                    depth += brace_delta($0)
-                    if (depth <= 0) {
-                      skip = 0
-                    }
-                    next
-                  }
-                  $0 !~ /import \/etc\/caddy\/conf\.d\/\*\.caddy/ {
-                    print
-                  }
-                ' "$CADDY_BACKUP" > "$CADDYFILE"
-              else
-                : > "$CADDYFILE"
-              fi
+              awk '
+                /# tone-start/ {
+                  skip = 1
+                  next
+                }
+                /# tone-end/ {
+                  skip = 0
+                  next
+                }
+                !skip {
+                  print
+                }
+              ' "$CADDYFILE" > "$CADDYFILE.clean"
 
-              if ! grep -q 'import /etc/caddy/conf.d/\*.caddy' "$CADDYFILE"; then
-                printf '\nimport /etc/caddy/conf.d/*.caddy\n' >> "$CADDYFILE"
-              fi
+              awk -v host="$PUBLIC_HOST" -v routes="$TONE_ROUTES" '
+                function print_routes(line) {
+                  while ((getline line < routes) > 0) {
+                    print line
+                  }
+                  close(routes)
+                  inserted = 1
+                }
+                {
+                  print
+                  if (!inserted && $0 ~ host && $0 ~ /\{/) {
+                    print_routes()
+                  }
+                }
+                END {
+                  if (!inserted) {
+                    print ""
+                    print host " {"
+                    print_routes()
+                    print "}"
+                  }
+                }
+              ' "$CADDYFILE.clean" > "$CADDYFILE"
+              rm -f "$CADDYFILE.clean" "$TONE_ROUTES"
 
               caddy fmt --overwrite "$CADDYFILE"
-              caddy fmt --overwrite /etc/caddy/conf.d/tone.caddy
               caddy validate --config "$CADDYFILE"
               if command -v systemctl >/dev/null 2>&1; then
                 systemctl reload caddy || systemctl restart caddy
@@ -219,5 +229,16 @@ jobs:
             pm2 delete "$APP_NAME" >/dev/null 2>&1 || true
             pm2 start "$RELEASE_DIR/.output/server/index.mjs" --name "$APP_NAME" --time
             pm2 save
+
+            curl -fsSI "https://$PUBLIC_HOST/tone" | tee /tmp/tone-deploy-check.txt
+            if grep -q ' 502 ' /tmp/tone-deploy-check.txt; then
+              echo "TONE route is still returning 502."
+              if command -v caddy >/dev/null 2>&1; then
+                echo "----- /etc/caddy/Caddyfile -----"
+                cat /etc/caddy/Caddyfile
+              fi
+              pm2 status || true
+              exit 1
+            fi
 
             find "$APP_DIR/releases" -mindepth 1 -maxdepth 1 -type d | sort | head -n -5 | xargs -r rm -rf
