@@ -124,72 +124,64 @@ jobs:
               npm install -g pm2
             fi
 
-            if command -v caddy >/dev/null 2>&1; then
-              CADDYFILE=/etc/caddy/Caddyfile
-              CADDY_BACKUP=/etc/caddy/Caddyfile.before-tone
-              TONE_ROUTES=/tmp/tone-caddy-routes
-
-              {
-                printf '%s\n' '  # tone-start'
-                printf '%s\n' '  @tone path /tone* /_nuxt/* /api/* /manifest.webmanifest /sw.js /icons/*'
-                printf '%s\n' '  handle @tone {'
-                printf '    reverse_proxy 127.0.0.1:%s\n' "$APP_PORT"
-                printf '%s\n' '  }'
-                printf '%s\n' '  # tone-end'
-              } > "$TONE_ROUTES"
-
-              if [ -f "$CADDYFILE" ] && [ ! -f "$CADDY_BACKUP" ]; then
+            if command -v docker >/dev/null 2>&1 && docker ps --format '{{.Names}}' | grep -qx 'caddy-gateway'; then
+              CADDYFILE=/root/Caddyfile
+              CADDY_BACKUP="/root/Caddyfile.before-tone-$(date +%Y%m%d%H%M%S)"
+              if [ -f "$CADDYFILE" ]; then
                 cp "$CADDYFILE" "$CADDY_BACKUP"
               fi
-              touch "$CADDYFILE"
-              rm -f /etc/caddy/conf.d/tone.caddy
 
-              awk '
-                /# tone-start/ {
-                  skip = 1
-                  next
-                }
-                /# tone-end/ {
-                  skip = 0
-                  next
-                }
-                !skip {
-                  print
-                }
-              ' "$CADDYFILE" > "$CADDYFILE.clean"
+              {
+                printf '%s {\n' "$PUBLIC_HOST"
+                printf '%s\n' '    encode gzip zstd'
+                printf '%s\n' ''
+                printf '%s\n' '    handle /tone* {'
+                printf '        reverse_proxy 172.17.0.1:%s\n' "$APP_PORT"
+                printf '%s\n' '    }'
+                printf '%s\n' ''
+                printf '%s\n' '    handle /_nuxt/* {'
+                printf '        reverse_proxy 172.17.0.1:%s\n' "$APP_PORT"
+                printf '%s\n' '    }'
+                printf '%s\n' ''
+                printf '%s\n' '    handle /manifest.webmanifest {'
+                printf '        reverse_proxy 172.17.0.1:%s\n' "$APP_PORT"
+                printf '%s\n' '    }'
+                printf '%s\n' ''
+                printf '%s\n' '    handle /sw.js {'
+                printf '        reverse_proxy 172.17.0.1:%s\n' "$APP_PORT"
+                printf '%s\n' '    }'
+                printf '%s\n' ''
+                printf '%s\n' '    handle /icons/* {'
+                printf '        reverse_proxy 172.17.0.1:%s\n' "$APP_PORT"
+                printf '%s\n' '    }'
+                printf '%s\n' ''
+                printf '%s\n' '    handle /api/auth* {'
+                printf '        reverse_proxy 172.17.0.1:%s\n' "$APP_PORT"
+                printf '%s\n' '    }'
+                printf '%s\n' ''
+                printf '%s\n' '    handle /api/recordings* {'
+                printf '        reverse_proxy 172.17.0.1:%s\n' "$APP_PORT"
+                printf '%s\n' '    }'
+                printf '%s\n' ''
+                printf '%s\n' '    handle /api/accompaniments* {'
+                printf '        reverse_proxy 172.17.0.1:%s\n' "$APP_PORT"
+                printf '%s\n' '    }'
+                printf '%s\n' ''
+                printf '%s\n' '    handle /api/* {'
+                printf '%s\n' '        reverse_proxy backend-server:8000'
+                printf '%s\n' '    }'
+                printf '%s\n' ''
+                printf '%s\n' '    handle {'
+                printf '%s\n' '        root * /srv'
+                printf '%s\n' '        try_files {path} /index.html'
+                printf '%s\n' '        file_server'
+                printf '%s\n' '    }'
+                printf '%s\n' '}'
+              } > "$CADDYFILE"
 
-              awk -v host="$PUBLIC_HOST" -v routes="$TONE_ROUTES" '
-                function print_routes(line) {
-                  while ((getline line < routes) > 0) {
-                    print line
-                  }
-                  close(routes)
-                  inserted = 1
-                }
-                {
-                  print
-                  if (!inserted && $0 ~ host && $0 ~ /\{/) {
-                    print_routes()
-                  }
-                }
-                END {
-                  if (!inserted) {
-                    print ""
-                    print host " {"
-                    print_routes()
-                    print "}"
-                  }
-                }
-              ' "$CADDYFILE.clean" > "$CADDYFILE"
-              rm -f "$CADDYFILE.clean" "$TONE_ROUTES"
-
-              caddy fmt --overwrite "$CADDYFILE"
-              caddy validate --config "$CADDYFILE"
-              if command -v systemctl >/dev/null 2>&1; then
-                systemctl reload caddy || systemctl restart caddy
-              else
-                caddy reload --config "$CADDYFILE"
-              fi
+              docker exec caddy-gateway caddy fmt --overwrite /etc/caddy/Caddyfile
+              docker exec caddy-gateway caddy validate --config /etc/caddy/Caddyfile
+              docker exec caddy-gateway caddy reload --config /etc/caddy/Caddyfile
             fi
 
             RELEASE_DIR="$APP_DIR/releases/$RELEASE_SHA"
@@ -219,7 +211,7 @@ jobs:
             npm run build
 
             export NODE_ENV=production
-            export HOST=127.0.0.1
+            export HOST=0.0.0.0
             export PORT="$APP_PORT"
             export DATABASE_URL="$DATABASE_URL"
             export GOOGLE_CLIENT_ID="$GOOGLE_CLIENT_ID"
