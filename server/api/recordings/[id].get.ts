@@ -1,5 +1,7 @@
 export default defineEventHandler(async (event) => {
   const { prisma } = await import('~/server/utils/prisma')
+  const { requireCurrentUser } = await import('~/server/utils/auth')
+  const user = await requireCurrentUser(event)
   const id = Number(getRouterParam(event, 'id'))
 
   if (!Number.isFinite(id)) {
@@ -15,16 +17,18 @@ export default defineEventHandler(async (event) => {
       duration: true,
       size: true,
       accompanimentId: true,
+      userId: true,
       createdAt: true
     }
   })
 
-  if (!recording) {
+  if (!recording || recording.userId !== user.id) {
     throw createError({ statusCode: 404, statusMessage: 'Recording not found' })
   }
 
+  const { userId, ...data } = recording
   return {
     success: true,
-    data: recording
+    data
   }
 })

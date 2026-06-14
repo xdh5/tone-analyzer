@@ -1,7 +1,7 @@
 export default defineEventHandler(async (event) => {
   const { prisma } = await import('~/server/utils/prisma')
-  const { getCurrentUser } = await import('~/server/utils/auth')
-  const user = await getCurrentUser(event)
+  const { requireCurrentUser } = await import('~/server/utils/auth')
+  const user = await requireCurrentUser(event)
   const formData = await readMultipartFormData(event)
   if (!formData) {
     throw createError({
@@ -23,6 +23,20 @@ export default defineEventHandler(async (event) => {
     })
   }
 
+  const safeAccompanimentId = Number.isFinite(accompanimentId) && accompanimentId > 0 ? accompanimentId : null
+  if (safeAccompanimentId) {
+    const accompaniment = await prisma.accompaniment.findUnique({
+      where: { id: safeAccompanimentId },
+      select: { id: true, userId: true }
+    })
+    if (!accompaniment || accompaniment.userId !== user.id) {
+      throw createError({
+        statusCode: 404,
+        statusMessage: 'Accompaniment not found'
+      })
+    }
+  }
+
   const recording = await prisma.recording.create({
     data: {
       name,
@@ -30,8 +44,8 @@ export default defineEventHandler(async (event) => {
       duration: Number.isFinite(duration) ? duration : 0,
       audio: audioPart.data,
       size: audioPart.data.length,
-      userId: user?.id || null,
-      accompanimentId: Number.isFinite(accompanimentId) && accompanimentId > 0 ? accompanimentId : null
+      userId: user.id,
+      accompanimentId: safeAccompanimentId
     },
     select: {
       id: true,

@@ -96,6 +96,7 @@
 
 <script setup lang="ts">
 import Pitchfinder from 'pitchfinder'
+import { useToast } from '~/composables/useToast'
 
 type PitchPoint = {
   time: number
@@ -123,6 +124,8 @@ const props = defineProps<{
   accompanimentId?: number
   recordingId?: number
 }>()
+
+const { showToast } = useToast()
 
 const MIN_MIDI = 24
 const MAX_MIDI = 108
@@ -236,7 +239,18 @@ const playheadX = computed(() => {
 })
 
 onMounted(async () => {
-  await loadAnalyzerMode()
+  try {
+    await loadAnalyzerMode()
+  } catch (error) {
+    if (isUnauthorized(error)) {
+      showToast('请先登录后使用账号内容', 'info')
+      window.location.href = '/api/auth/google'
+    } else {
+      showToast('内容加载失败', 'error')
+      await navigateTo(analyzerBackTo.value)
+    }
+    return
+  }
   resizeCanvas()
   draw(true)
   requestAnimationFrame(() => {
@@ -476,6 +490,14 @@ async function saveRecording() {
       method: 'POST',
       body: formData
     })
+    showToast('录音已保存', 'success')
+  } catch (error) {
+    if (isUnauthorized(error)) {
+      showToast('请先登录后保存录音', 'info')
+      window.location.href = '/api/auth/google'
+    } else {
+      showToast('录音保存失败', 'error')
+    }
   } finally {
     isSavingRecording.value = false
   }
@@ -1055,6 +1077,14 @@ function formatMicrophoneError(error: unknown) {
     return '麦克风当前无法读取，可能被其他应用占用。'
   }
   return error instanceof Error ? error.message : '无法访问麦克风，请检查浏览器权限。'
+}
+
+function isUnauthorized(error: unknown) {
+  return typeof error === 'object'
+    && error !== null
+    && ('statusCode' in error || 'status' in error)
+    && ((error as { statusCode?: number; status?: number }).statusCode === 401
+      || (error as { statusCode?: number; status?: number }).status === 401)
 }
 </script>
 

@@ -38,7 +38,7 @@ function iconClass(kind: ToastKind) {
 .toast-stack {
   position: fixed;
   right: max(14px, env(safe-area-inset-right));
-  bottom: max(14px, env(safe-area-inset-bottom));
+  top: max(14px, env(safe-area-inset-top));
   z-index: 1000;
   display: grid;
   width: min(340px, calc(100vw - 28px));
@@ -90,6 +90,6 @@ function iconClass(kind: ToastKind) {
 .toast-list-enter-from,
 .toast-list-leave-to {
   opacity: 0;
-  transform: translateY(8px);
+  transform: translateY(-8px);
 }
 </style>

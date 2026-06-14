@@ -61,10 +61,18 @@ type RecordingItem = {
   accompanimentId: number | null
 }
 
+type User = {
+  id: number
+  email: string
+  name: string
+  avatarUrl: string | null
+}
+
 type DialogKind = 'rename' | 'delete'
 
 const recordings = ref<RecordingItem[]>([])
 const draftName = ref('')
+const user = ref<User | null>(null)
 const { showToast } = useToast()
 
 const dialog = reactive<{
@@ -85,9 +93,21 @@ const dialog = reactive<{
   busy: false
 })
 
-onMounted(() => {
-  refreshList().catch(() => showToast('录音列表加载失败', 'error'))
+onMounted(async () => {
+  await refreshUser().catch(() => null)
+  if (!user.value) {
+    showToast('请先登录后查看录音', 'info')
+    return
+  }
+  refreshList().catch((error) => {
+    showToast(isUnauthorized(error) ? '请先登录后查看录音' : '录音列表加载失败', 'error')
+  })
 })
+
+async function refreshUser() {
+  const response = await $fetch<{ data: User | null }>('/api/auth/me')
+  user.value = response.data
+}
 
 async function refreshList() {
   const response = await $fetch<{ data: RecordingItem[] }>('/api/recordings')
@@ -152,6 +172,14 @@ async function confirmDialog() {
   } finally {
     dialog.busy = false
   }
+}
+
+function isUnauthorized(error: unknown) {
+  return typeof error === 'object'
+    && error !== null
+    && ('statusCode' in error || 'status' in error)
+    && ((error as { statusCode?: number; status?: number }).statusCode === 401
+      || (error as { statusCode?: number; status?: number }).status === 401)
 }
 
 function formatTime(seconds: number) {

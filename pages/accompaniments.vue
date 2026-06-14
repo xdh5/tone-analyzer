@@ -9,7 +9,7 @@
         <span aria-hidden="true"></span>
       </header>
 
-      <button class="upload-card" type="button" :disabled="uploading" @click="fileInput?.click()">
+      <button class="upload-card" type="button" :disabled="uploading" @click="handleUploadClick">
         <i :class="uploading ? 'bi bi-hourglass-split' : 'bi bi-cloud-arrow-up'"></i>
         <span>
           <strong>{{ uploading ? '正在上传' : '上传伴奏' }}</strong>
@@ -73,12 +73,20 @@ type MediaItem = {
   duration: number
 }
 
+type User = {
+  id: number
+  email: string
+  name: string
+  avatarUrl: string | null
+}
+
 type DialogKind = 'rename' | 'delete'
 
 const fileInput = ref<HTMLInputElement | null>(null)
 const accompaniments = ref<MediaItem[]>([])
 const uploading = ref(false)
 const draftName = ref('')
+const user = ref<User | null>(null)
 const { showToast } = useToast()
 
 const dialog = reactive<{
@@ -99,13 +107,34 @@ const dialog = reactive<{
   busy: false
 })
 
-onMounted(() => {
-  refreshList().catch(() => showToast('伴奏列表加载失败', 'error'))
+onMounted(async () => {
+  await refreshUser().catch(() => null)
+  if (!user.value) {
+    showToast('请先登录后管理伴奏', 'info')
+    return
+  }
+  refreshList().catch((error) => {
+    showToast(isUnauthorized(error) ? '请先登录后管理伴奏' : '伴奏列表加载失败', 'error')
+  })
 })
+
+async function refreshUser() {
+  const response = await $fetch<{ data: User | null }>('/api/auth/me')
+  user.value = response.data
+}
 
 async function refreshList() {
   const response = await $fetch<{ data: MediaItem[] }>('/api/accompaniments')
   accompaniments.value = response.data
+}
+
+function handleUploadClick() {
+  if (!user.value) {
+    showToast('请先登录后上传伴奏', 'info')
+    window.location.href = '/api/auth/google'
+    return
+  }
+  fileInput.value?.click()
 }
 
 async function uploadAccompaniment(event: Event) {
@@ -131,8 +160,13 @@ async function uploadAccompaniment(event: Event) {
     input.value = ''
     await refreshList()
     showToast('伴奏上传成功', 'success')
-  } catch {
-    showToast('伴奏上传失败', 'error')
+  } catch (error) {
+    if (isUnauthorized(error)) {
+      showToast('请先登录后上传伴奏', 'info')
+      window.location.href = '/api/auth/google'
+    } else {
+      showToast('伴奏上传失败', 'error')
+    }
   } finally {
     uploading.value = false
   }
@@ -196,6 +230,14 @@ async function confirmDialog() {
   } finally {
     dialog.busy = false
   }
+}
+
+function isUnauthorized(error: unknown) {
+  return typeof error === 'object'
+    && error !== null
+    && ('statusCode' in error || 'status' in error)
+    && ((error as { statusCode?: number; status?: number }).statusCode === 401
+      || (error as { statusCode?: number; status?: number }).status === 401)
 }
 
 function readAudioDuration(file: File) {

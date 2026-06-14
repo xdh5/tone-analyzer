@@ -64,6 +64,17 @@ export async function getCurrentUser(event: H3Event): Promise<CurrentUser | null
   return session.user
 }
 
+export async function requireCurrentUser(event: H3Event): Promise<CurrentUser> {
+  const user = await getCurrentUser(event)
+  if (!user) {
+    throw createError({
+      statusCode: 401,
+      statusMessage: 'Login required'
+    })
+  }
+  return user
+}
+
 export function getSessionExpiresAt() {
   return new Date(Date.now() + sessionMaxAgeSeconds * 1000)
 }

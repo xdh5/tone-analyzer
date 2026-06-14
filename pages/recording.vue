@@ -5,7 +5,7 @@
         <NuxtLink class="icon-link" to="/" aria-label="返回" title="返回">
           <i class="bi bi-chevron-left"></i>
         </NuxtLink>
-        <h1>录音模块</h1>
+        <h1>自由录音</h1>
         <span></span>
       </header>
 
@@ -13,7 +13,7 @@
         <NuxtLink class="module-row primary" to="/record">
           <span class="module-icon"><i class="bi bi-mic-fill"></i></span>
           <span class="module-copy">
-            <strong>自由录音</strong>
+            <strong>直接录音</strong>
             <small>不使用伴奏，直接录制音高曲线</small>
           </span>
           <i class="bi bi-chevron-right"></i>

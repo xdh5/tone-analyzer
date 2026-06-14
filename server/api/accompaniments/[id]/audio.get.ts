@@ -1,5 +1,7 @@
 export default defineEventHandler(async (event) => {
   const { prisma } = await import('~/server/utils/prisma')
+  const { requireCurrentUser } = await import('~/server/utils/auth')
+  const user = await requireCurrentUser(event)
   const id = Number(getRouterParam(event, 'id'))
 
   if (!Number.isFinite(id)) {
@@ -10,11 +12,12 @@ export default defineEventHandler(async (event) => {
     where: { id },
     select: {
       audio: true,
-      mimeType: true
+      mimeType: true,
+      userId: true
     }
   })
 
-  if (!accompaniment) {
+  if (!accompaniment || accompaniment.userId !== user.id) {
     throw createError({ statusCode: 404, statusMessage: 'Accompaniment not found' })
   }
 

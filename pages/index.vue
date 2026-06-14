@@ -26,19 +26,10 @@
 
       <nav class="module-list" aria-label="TONE 功能菜单">
         <NuxtLink class="module-row primary" to="/recording">
-          <span class="module-icon"><i class="bi bi-grid-fill"></i></span>
-          <span class="module-copy">
-            <strong>录音模块</strong>
-            <small>进入录音相关功能</small>
-          </span>
-          <i class="bi bi-chevron-right"></i>
-        </NuxtLink>
-
-        <NuxtLink class="module-row" to="/record">
           <span class="module-icon"><i class="bi bi-mic-fill"></i></span>
           <span class="module-copy">
             <strong>自由录音</strong>
-            <small>直接打开音高画布</small>
+            <small>录音、回放、保存你的音高曲线</small>
           </span>
           <i class="bi bi-chevron-right"></i>
         </NuxtLink>
@@ -60,24 +51,6 @@
           </span>
           <i class="bi bi-chevron-right"></i>
         </NuxtLink>
-
-        <div class="module-row disabled" aria-disabled="true">
-          <span class="module-icon"><i class="bi bi-bullseye"></i></span>
-          <span class="module-copy">
-            <strong>音准训练</strong>
-            <small>待开发</small>
-          </span>
-          <i class="bi bi-lock"></i>
-        </div>
-
-        <div class="module-row disabled" aria-disabled="true">
-          <span class="module-icon"><i class="bi bi-music-player"></i></span>
-          <span class="module-copy">
-            <strong>歌曲库</strong>
-            <small>待开发</small>
-          </span>
-          <i class="bi bi-lock"></i>
-        </div>
       </nav>
     </section>
   </main>

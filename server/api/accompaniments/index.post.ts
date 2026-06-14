@@ -1,7 +1,7 @@
 export default defineEventHandler(async (event) => {
   const { prisma } = await import('~/server/utils/prisma')
-  const { getCurrentUser } = await import('~/server/utils/auth')
-  const user = await getCurrentUser(event)
+  const { requireCurrentUser } = await import('~/server/utils/auth')
+  const user = await requireCurrentUser(event)
   const formData = await readMultipartFormData(event)
 
   if (!formData) {
@@ -24,7 +24,7 @@ export default defineEventHandler(async (event) => {
       duration: Number.isFinite(duration) ? duration : 0,
       audio: audioPart.data,
       size: audioPart.data.length,
-      userId: user?.id || null
+      userId: user.id
     },
     select: {
       id: true,
