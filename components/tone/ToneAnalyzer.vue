@@ -81,6 +81,7 @@
       ref="backingAudioRef"
       :src="backingTrackUrl || undefined"
       preload="auto"
+      playsinline
       @loadedmetadata="handleBackingMetadata"
       @ended="handleBackingEnded"
     ></audio>
@@ -88,6 +89,7 @@
       ref="recordPlaybackRef"
       :src="recordedAudioUrl || undefined"
       preload="auto"
+      playsinline
       @timeupdate="handleRecordPlaybackTime"
       @ended="handleRecordPlaybackEnded"
     ></audio>
@@ -522,6 +524,7 @@ async function toggleRecordingPlayback() {
   }
 
   pause()
+  await releaseMicrophoneForPlayback()
   const startAt = playbackCursor.value >= recordingDuration.value - 0.05 ? 0 : playbackCursor.value
   await ensureRecordPlaybackOutput()
   recordPlaybackRef.value.currentTime = startAt
@@ -567,6 +570,38 @@ function startPlaybackCursorLoop() {
 function stopPlaybackCursorLoop() {
   cancelAnimationFrame(recordPlaybackRafId)
   recordPlaybackRafId = 0
+}
+
+async function releaseMicrophoneForPlayback() {
+  if (isReadOnlyPlayback.value || !mediaStream) return
+
+  const recorder = mediaRecorder
+  if (recorder && recorder.state !== 'inactive') {
+    await new Promise<void>((resolve) => {
+      const handleStop = recorder.onstop
+      recorder.onstop = (event) => {
+        handleStop?.call(recorder, event)
+        resolve()
+      }
+
+      try {
+        if (recorder.state === 'recording') recorder.requestData()
+        recorder.stop()
+      } catch {
+        resolve()
+      }
+    })
+  }
+
+  mediaStream?.getTracks().forEach((track) => track.stop())
+  mediaStream = null
+  audioContext?.close()
+  audioContext = null
+  analyser = null
+  yinDetector = null
+  macleodDetector = null
+  sampleBuffer = null
+  processedBuffer = null
 }
 
 async function ensureRecordPlaybackOutput() {
