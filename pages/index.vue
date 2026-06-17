@@ -6,9 +6,12 @@
           <p>TONE</p>
           <h1>声音工具</h1>
         </div>
-        <button v-if="user" class="avatar-button" type="button" title="退出登录" @click="logout">
-          <i class="bi bi-person-fill"></i>
-        </button>
+        <div v-if="user" class="user-actions" aria-label="账号操作">
+          <span class="username-badge">{{ user.username }}</span>
+          <button class="logout-button" type="button" title="退出登录" @click="logout">
+            <i class="bi bi-box-arrow-right"></i>
+          </button>
+        </div>
       </header>
 
       <form v-if="!user" class="auth-card" @submit.prevent="submitAuth">
@@ -32,14 +35,6 @@
           <span>{{ authMode === 'login' ? '登录' : '注册并登录' }}</span>
         </button>
       </form>
-
-      <div v-else class="account-card">
-        <span>
-          <strong>{{ user.name }}</strong>
-          <small>{{ user.username }}</small>
-        </span>
-        <button type="button" @click="logout">退出</button>
-      </div>
 
       <nav v-if="user" class="module-list" aria-label="TONE 功能菜单">
         <NuxtLink class="module-row primary" to="/record">
@@ -168,8 +163,26 @@ async function logout() {
   font-weight: 900;
 }
 
-.login-button,
-.avatar-button {
+.user-actions {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  gap: 8px;
+}
+
+.username-badge {
+  display: block;
+  max-width: 116px;
+  overflow: hidden;
+  color: #3d4856;
+  font-size: 0.84rem;
+  font-weight: 850;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.logout-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -180,24 +193,10 @@ async function logout() {
   text-decoration: none;
 }
 
-.login-button {
-  height: 38px;
-  gap: 7px;
-  padding: 0 12px;
-  font-size: 0.88rem;
-  font-weight: 800;
-}
-
-.avatar-button {
-  width: 40px;
-  height: 40px;
-  overflow: hidden;
-}
-
-.avatar-button img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+.logout-button {
+  width: 36px;
+  height: 36px;
+  font-size: 1rem;
 }
 
 .auth-card {
@@ -253,7 +252,7 @@ async function logout() {
   border-radius: 8px;
   padding: 0 10px;
   color: #172033;
-  font-size: 0.92rem;
+  font-size: 16px;
   background: #fff;
 }
 
@@ -273,52 +272,6 @@ async function logout() {
 
 .auth-submit:disabled {
   opacity: 0.58;
-}
-
-.account-card {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 14px;
-  padding: 10px 12px;
-  border: 1px solid #dce5ef;
-  border-radius: 8px;
-  background: #f8fafc;
-}
-
-.account-card span {
-  display: grid;
-  min-width: 0;
-  gap: 2px;
-}
-
-.account-card strong,
-.account-card small {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.account-card strong {
-  color: #1d2938;
-  font-size: 0.92rem;
-}
-
-.account-card small {
-  color: #66758a;
-  font-size: 0.76rem;
-}
-
-.account-card button {
-  flex: 0 0 auto;
-  height: 30px;
-  padding: 0 10px;
-  border: 1px solid #d6dfeb;
-  border-radius: 999px;
-  background: #fff;
-  color: #3d4856;
-  font-size: 0.8rem;
 }
 
 .module-list {
