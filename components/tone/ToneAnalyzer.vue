@@ -165,6 +165,9 @@ let audioContext: AudioContext | null = null
 let analyser: AnalyserNode | null = null
 let mediaStream: MediaStream | null = null
 let mediaRecorder: MediaRecorder | null = null
+let playbackAudioContext: AudioContext | null = null
+let recordPlaybackSource: MediaElementAudioSourceNode | null = null
+let recordPlaybackGain: GainNode | null = null
 let yinDetector: ((buffer: Float32Array) => number | null) | null = null
 let macleodDetector: ((buffer: Float32Array) => { probability: number; freq: number }) | null = null
 let sampleBuffer: Float32Array | null = null
@@ -270,6 +273,7 @@ onBeforeUnmount(() => {
   pause()
   stopRecordingPlayback()
   stopMicrophone()
+  playbackAudioContext?.close()
   if (recordedAudioUrl.value) URL.revokeObjectURL(recordedAudioUrl.value)
   canvasResizeObserver?.disconnect()
 })
@@ -519,7 +523,9 @@ async function toggleRecordingPlayback() {
 
   pause()
   const startAt = playbackCursor.value >= recordingDuration.value - 0.05 ? 0 : playbackCursor.value
+  await ensureRecordPlaybackOutput()
   recordPlaybackRef.value.currentTime = startAt
+  recordPlaybackRef.value.volume = 1
   await recordPlaybackRef.value.play().then(() => {
     isRecordingPlaybackActive.value = true
     startPlaybackCursorLoop()
@@ -561,6 +567,38 @@ function startPlaybackCursorLoop() {
 function stopPlaybackCursorLoop() {
   cancelAnimationFrame(recordPlaybackRafId)
   recordPlaybackRafId = 0
+}
+
+async function ensureRecordPlaybackOutput() {
+  const audio = recordPlaybackRef.value
+  if (!audio) return
+
+  if (!playbackAudioContext) {
+    playbackAudioContext = new AudioContext()
+  }
+  if (playbackAudioContext.state === 'suspended') {
+    await playbackAudioContext.resume()
+  }
+
+  if (!recordPlaybackSource) {
+    recordPlaybackSource = playbackAudioContext.createMediaElementSource(audio)
+    recordPlaybackGain = playbackAudioContext.createGain()
+    recordPlaybackSource.connect(recordPlaybackGain)
+    recordPlaybackGain.connect(playbackAudioContext.destination)
+  }
+
+  if (recordPlaybackGain) {
+    recordPlaybackGain.gain.value = getRecordPlaybackGain()
+  }
+}
+
+function getRecordPlaybackGain() {
+  return isStandalonePwa() ? 3 : 1
+}
+
+function isStandalonePwa() {
+  return window.matchMedia?.('(display-mode: standalone)').matches
+    || (navigator as Navigator & { standalone?: boolean }).standalone === true
 }
 
 function startPlayheadSeek(event: PointerEvent) {
