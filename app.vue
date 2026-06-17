@@ -26,6 +26,8 @@ body,
 
 body {
   background: #f5f7fa;
+  touch-action: manipulation;
+  -webkit-text-size-adjust: 100%;
 }
 
 .app-shell {
