@@ -14,7 +14,11 @@
         </div>
       </header>
 
-      <form v-if="!user" class="auth-card" @submit.prevent="submitAuth">
+      <div v-if="!authReady" class="auth-loading" aria-label="正在检查登录状态">
+        <span></span>
+      </div>
+
+      <form v-else-if="!user" class="auth-card" @submit.prevent="submitAuth">
         <div class="auth-tabs" role="tablist" aria-label="账号入口">
           <button type="button" :class="{ active: authMode === 'login' }" @click="authMode = 'login'">登录</button>
           <button type="button" :class="{ active: authMode === 'register' }" @click="authMode = 'register'">注册</button>
@@ -82,10 +86,15 @@ const authMode = ref<'login' | 'register'>('login')
 const username = ref('')
 const password = ref('')
 const authBusy = ref(false)
+const authReady = ref(false)
 const { showToast } = useToast()
 
 onMounted(() => {
-  refreshUser().catch(() => showToast('登录状态加载失败', 'error'))
+  refreshUser()
+    .catch(() => showToast('登录状态加载失败', 'error'))
+    .finally(() => {
+      authReady.value = true
+    })
 })
 
 async function refreshUser() {
@@ -207,6 +216,27 @@ async function logout() {
   border: 1px solid #dce5ef;
   border-radius: 8px;
   background: #f8fafc;
+}
+
+.auth-loading {
+  display: grid;
+  height: 118px;
+  place-items: center;
+}
+
+.auth-loading span {
+  width: 26px;
+  height: 26px;
+  border: 3px solid #dce5ef;
+  border-top-color: #ffc43d;
+  border-radius: 999px;
+  animation: auth-spin 780ms linear infinite;
+}
+
+@keyframes auth-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .auth-tabs {
