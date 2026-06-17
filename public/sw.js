@@ -1,7 +1,6 @@
 const CACHE_NAME = 'tone'
 const APP_SHELL = [
   '/',
-  '/recording',
   '/accompaniments',
   '/recordings',
   '/manifest.webmanifest'

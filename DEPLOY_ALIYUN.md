@@ -1,6 +1,6 @@
 # Deploy TONE to Aliyun ECS
 
-This deployment uses GitHub Actions, SSH, PM2, and Nginx.
+This deployment uses GitHub Actions, SSH, PM2, and Caddy.
 
 ## 1. Server Layout
 
@@ -34,14 +34,12 @@ env:
   ECS_SSH_PORT: 22
   ECS_APP_DIR: /opt/tone
   ECS_APP_PORT: 3002
-  GOOGLE_CLIENT_ID: your-google-client-id
 ```
 
-Usually only these two placeholders must be changed:
+Usually only this placeholder must be changed:
 
 ```text
 ECS_HOST
-GOOGLE_CLIENT_ID
 ```
 
 ## 3. Add GitHub Secrets
@@ -52,7 +50,6 @@ Only add:
 
 ```text
 ECS_SSH_KEY
-GOOGLE_CLIENT_SECRET
 ```
 
 `ECS_SSH_KEY` is the private SSH key content:
@@ -65,7 +62,7 @@ GOOGLE_CLIENT_SECRET
 
 ## 4. Prepare ECS
 
-Install Node.js, npm, and Nginx on the ECS server.
+Install Node.js and npm on the ECS server.
 
 PM2 will be installed automatically during deployment if it is missing.
 
@@ -75,58 +72,11 @@ Verify:
 node -v
 npm -v
 pm2 -v
-nginx -v
 ```
 
-## 5. Nginx
+## 5. Deploy
 
-Use a subdomain, for example:
-
-```text
-tone.your-domain.com
-```
-
-Nginx config:
-
-```nginx
-server {
-    server_name tone.your-domain.com;
-
-    location / {
-        proxy_pass http://127.0.0.1:3002;
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
-```
-
-Reload Nginx:
-
-```bash
-nginx -t
-systemctl reload nginx
-```
-
-## 6. Google OAuth
-
-In Google Cloud Console, add:
-
-```text
-https://tone.your-domain.com/api/auth/google/callback
-```
-
-If testing directly by IP:
-
-```text
-http://your-ecs-public-ip:3002/api/auth/google/callback
-```
-
-## 7. Deploy
-
-Push to `master`.
+Push to `main`.
 
 GitHub Actions will:
 

@@ -7,25 +7,42 @@
           <h1>声音工具</h1>
         </div>
         <button v-if="user" class="avatar-button" type="button" title="退出登录" @click="logout">
-          <img v-if="user.avatarUrl" :src="user.avatarUrl" alt="" />
-          <i v-else class="bi bi-person-fill"></i>
+          <i class="bi bi-person-fill"></i>
         </button>
-        <a v-else class="login-button" href="/api/auth/google">
-          <i class="bi bi-google"></i>
-          <span>登录</span>
-        </a>
       </header>
 
-      <div v-if="user" class="account-card">
+      <form v-if="!user" class="auth-card" @submit.prevent="submitAuth">
+        <div class="auth-tabs" role="tablist" aria-label="账号入口">
+          <button type="button" :class="{ active: authMode === 'login' }" @click="authMode = 'login'">登录</button>
+          <button type="button" :class="{ active: authMode === 'register' }" @click="authMode = 'register'">注册</button>
+        </div>
+
+        <label>
+          <span>用户名</span>
+          <input v-model.trim="username" type="text" autocomplete="username" placeholder="请输入用户名" />
+        </label>
+
+        <label>
+          <span>密码</span>
+          <input v-model="password" type="password" autocomplete="current-password" placeholder="请输入密码" />
+        </label>
+
+        <button class="auth-submit" type="submit" :disabled="authBusy">
+          <i :class="authBusy ? 'bi bi-hourglass-split' : 'bi bi-box-arrow-in-right'"></i>
+          <span>{{ authMode === 'login' ? '登录' : '注册并登录' }}</span>
+        </button>
+      </form>
+
+      <div v-else class="account-card">
         <span>
           <strong>{{ user.name }}</strong>
-          <small>{{ user.email }}</small>
+          <small>{{ user.username }}</small>
         </span>
         <button type="button" @click="logout">退出</button>
       </div>
 
-      <nav class="module-list" aria-label="TONE 功能菜单">
-        <NuxtLink class="module-row primary" to="/recording">
+      <nav v-if="user" class="module-list" aria-label="TONE 功能菜单">
+        <NuxtLink class="module-row primary" to="/record">
           <span class="module-icon"><i class="bi bi-mic-fill"></i></span>
           <span class="module-copy">
             <strong>自由录音</strong>
@@ -61,12 +78,15 @@ import { useToast } from '~/composables/useToast'
 
 type User = {
   id: number
-  email: string
+  username: string
   name: string
-  avatarUrl: string | null
 }
 
 const user = ref<User | null>(null)
+const authMode = ref<'login' | 'register'>('login')
+const username = ref('')
+const password = ref('')
+const authBusy = ref(false)
 const { showToast } = useToast()
 
 onMounted(() => {
@@ -76,6 +96,28 @@ onMounted(() => {
 async function refreshUser() {
   const response = await $fetch<{ data: User | null }>('/api/auth/me')
   user.value = response.data
+}
+
+async function submitAuth() {
+  if (authBusy.value) return
+
+  authBusy.value = true
+  try {
+    await $fetch(authMode.value === 'login' ? '/api/auth/login' : '/api/auth/register', {
+      method: 'POST',
+      body: {
+        username: username.value,
+        password: password.value
+      }
+    })
+    password.value = ''
+    await refreshUser()
+    showToast(authMode.value === 'login' ? '登录成功' : '注册成功', 'success')
+  } catch {
+    showToast(authMode.value === 'login' ? '用户名或密码错误' : '注册失败，请换一个用户名', 'error')
+  } finally {
+    authBusy.value = false
+  }
 }
 
 async function logout() {
@@ -156,6 +198,81 @@ async function logout() {
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+.auth-card {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 14px;
+  padding: 12px;
+  border: 1px solid #dce5ef;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.auth-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  padding: 4px;
+  border: 1px solid #d6dfeb;
+  border-radius: 999px;
+  background: #fff;
+}
+
+.auth-tabs button {
+  height: 32px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #66758a;
+  font-size: 0.86rem;
+  font-weight: 850;
+}
+
+.auth-tabs button.active {
+  background: #ffc43d;
+  color: #172033;
+}
+
+.auth-card label {
+  display: grid;
+  gap: 6px;
+}
+
+.auth-card label span {
+  color: #506070;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.auth-card input {
+  width: 100%;
+  height: 40px;
+  border: 1px solid #d6dfeb;
+  border-radius: 8px;
+  padding: 0 10px;
+  color: #172033;
+  font-size: 0.92rem;
+  background: #fff;
+}
+
+.auth-submit {
+  display: inline-flex;
+  height: 40px;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: 0;
+  border-radius: 8px;
+  background: #172033;
+  color: #fff;
+  font-size: 0.92rem;
+  font-weight: 850;
+}
+
+.auth-submit:disabled {
+  opacity: 0.58;
 }
 
 .account-card {

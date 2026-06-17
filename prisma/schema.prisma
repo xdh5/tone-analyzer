@@ -37,10 +37,9 @@ model Accompaniment {
 
 model User {
   id             Int             @id @default(autoincrement())
-  googleId       String          @unique
-  email          String          @unique
+  username       String          @unique
+  passwordHash   String
   name           String
-  avatarUrl      String?
   sessions       AuthSession[]
   recordings     Recording[]
   accompaniments Accompaniment[]

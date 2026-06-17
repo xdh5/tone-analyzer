@@ -2,7 +2,7 @@
   <main class="list-page">
     <section class="list-shell">
       <header class="page-header">
-        <NuxtLink class="icon-link" to="/recording" aria-label="返回" title="返回">
+        <NuxtLink class="icon-link" to="/" aria-label="返回" title="返回">
           <i class="bi bi-chevron-left"></i>
         </NuxtLink>
         <h1>录音记录</h1>
@@ -63,9 +63,8 @@ type RecordingItem = {
 
 type User = {
   id: number
-  email: string
+  username: string
   name: string
-  avatarUrl: string | null
 }
 
 type DialogKind = 'rename' | 'delete'

@@ -2,7 +2,7 @@
   <main class="list-page">
     <section class="list-shell">
       <header class="page-header">
-        <NuxtLink class="icon-link" to="/recording" aria-label="返回" title="返回">
+        <NuxtLink class="icon-link" to="/" aria-label="返回" title="返回">
           <i class="bi bi-chevron-left"></i>
         </NuxtLink>
         <h1>伴奏跟唱</h1>
@@ -75,9 +75,8 @@ type MediaItem = {
 
 type User = {
   id: number
-  email: string
+  username: string
   name: string
-  avatarUrl: string | null
 }
 
 type DialogKind = 'rename' | 'delete'
@@ -131,7 +130,7 @@ async function refreshList() {
 function handleUploadClick() {
   if (!user.value) {
     showToast('请先登录后上传伴奏', 'info')
-    window.location.href = '/api/auth/google'
+    navigateTo('/')
     return
   }
   fileInput.value?.click()
@@ -163,7 +162,7 @@ async function uploadAccompaniment(event: Event) {
   } catch (error) {
     if (isUnauthorized(error)) {
       showToast('请先登录后上传伴奏', 'info')
-      window.location.href = '/api/auth/google'
+      await navigateTo('/')
     } else {
       showToast('伴奏上传失败', 'error')
     }

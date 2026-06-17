@@ -218,7 +218,7 @@ const isAccompanimentMode = computed(() => props.mode === 'practice' && Number.i
 const analyzerBackTo = computed(() => {
   if (props.mode === 'playback') return '/recordings'
   if (props.mode === 'practice') return '/accompaniments'
-  return '/recording'
+  return '/'
 })
 const analyzerTitle = computed(() => {
   if (props.mode === 'playback') return '录音回放'
@@ -244,7 +244,7 @@ onMounted(async () => {
   } catch (error) {
     if (isUnauthorized(error)) {
       showToast('请先登录后使用账号内容', 'info')
-      window.location.href = '/api/auth/google'
+      await navigateTo('/')
     } else {
       showToast('内容加载失败', 'error')
       await navigateTo(analyzerBackTo.value)
@@ -494,7 +494,7 @@ async function saveRecording() {
   } catch (error) {
     if (isUnauthorized(error)) {
       showToast('请先登录后保存录音', 'info')
-      window.location.href = '/api/auth/google'
+      await navigateTo('/')
     } else {
       showToast('录音保存失败', 'error')
     }

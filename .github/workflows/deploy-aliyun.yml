@@ -14,7 +14,6 @@ env:
   ECS_APP_DIR: /opt/tone
   ECS_APP_PORT: 3002
   PUBLIC_HOST: tone.cyberlab.bond
-  GOOGLE_CLIENT_ID: 1010309636967-11b7nr9oso4i333mmlgh44osevmpl7ru.apps.googleusercontent.com
 
 jobs:
   deploy:
@@ -59,15 +58,13 @@ jobs:
           APP_PORT: ${{ env.ECS_APP_PORT }}
           PUBLIC_HOST: ${{ env.PUBLIC_HOST }}
           RELEASE_SHA: ${{ github.sha }}
-          GOOGLE_CLIENT_ID: ${{ env.GOOGLE_CLIENT_ID }}
-          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
         with:
           host: ${{ env.ECS_HOST }}
           username: ${{ env.ECS_USERNAME }}
           key: ${{ secrets.ECS_SSH_KEY }}
           port: ${{ env.ECS_SSH_PORT }}
           command_timeout: 30m
-          envs: APP_NAME,APP_DIR,APP_PORT,PUBLIC_HOST,RELEASE_SHA,GOOGLE_CLIENT_ID,GOOGLE_CLIENT_SECRET
+          envs: APP_NAME,APP_DIR,APP_PORT,PUBLIC_HOST,RELEASE_SHA
           script: |
             set -eu
 
@@ -175,13 +172,11 @@ jobs:
 
             cat > .env <<ENVFILE
             DATABASE_URL="$DATABASE_URL"
-            GOOGLE_CLIENT_ID="$GOOGLE_CLIENT_ID"
-            GOOGLE_CLIENT_SECRET="$GOOGLE_CLIENT_SECRET"
             ENVFILE
 
             npm install --cache "$NPM_CACHE_DIR" --prefer-offline --no-audit --no-fund
             npx prisma generate
-            npx prisma db push
+            npx prisma db push --accept-data-loss
             rm -rf .nuxt .output
             npm run build
 
@@ -189,8 +184,6 @@ jobs:
             export HOST=0.0.0.0
             export PORT="$APP_PORT"
             export DATABASE_URL="$DATABASE_URL"
-            export GOOGLE_CLIENT_ID="$GOOGLE_CLIENT_ID"
-            export GOOGLE_CLIENT_SECRET="$GOOGLE_CLIENT_SECRET"
 
             ln -sfn "$RELEASE_DIR" "$APP_DIR/current"
             pm2 delete "$APP_NAME" >/dev/null 2>&1 || true
