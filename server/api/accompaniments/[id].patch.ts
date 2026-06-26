@@ -37,6 +37,7 @@ export default defineEventHandler(async (event) => {
       mimeType: true,
       duration: true,
       size: true,
+      sortOrder: true,
       createdAt: true
     }
   })

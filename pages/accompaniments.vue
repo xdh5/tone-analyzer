@@ -28,8 +28,23 @@
       <section class="list-section">
         <h2>已上传伴奏</h2>
         <div v-if="accompaniments.length === 0" class="empty-row">还没有伴奏</div>
-        <div v-for="item in accompaniments" :key="item.id" class="list-row">
-          <NuxtLink class="media-link" :to="`/practice/${item.id}`">
+        <div
+          v-for="item in accompaniments"
+          :key="item.id"
+          class="list-row"
+          :class="{ dragging: draggingId === item.id }"
+          :data-accompaniment-id="item.id"
+        >
+          <button
+            class="drag-handle"
+            type="button"
+            :aria-label="`拖动排序 ${item.name}`"
+            title="拖动排序"
+            @pointerdown.prevent.stop="startDrag($event, item)"
+          >
+            <i class="bi bi-grip-vertical"></i>
+          </button>
+          <NuxtLink class="media-link" :to="`/practice/${item.id}`" @click="handleMediaClick">
             <i class="bi bi-music-note-beamed"></i>
             <span>{{ item.name }}</span>
             <small>{{ formatTime(item.duration) }}</small>
@@ -71,6 +86,7 @@ type MediaItem = {
   id: number
   name: string
   duration: number
+  sortOrder: number
 }
 
 type User = {
@@ -86,7 +102,11 @@ const accompaniments = ref<MediaItem[]>([])
 const uploading = ref(false)
 const draftName = ref('')
 const user = ref<User | null>(null)
+const draggingId = ref<number | null>(null)
 const { showToast } = useToast()
+
+let dragStartY = 0
+let dragMoved = false
 
 const dialog = reactive<{
   open: boolean
@@ -125,6 +145,85 @@ async function refreshUser() {
 async function refreshList() {
   const response = await $fetch<{ data: MediaItem[] }>('/api/accompaniments')
   accompaniments.value = response.data
+}
+
+function startDrag(event: PointerEvent, item: MediaItem) {
+  if (accompaniments.value.length < 2 || dialog.open) return
+
+  draggingId.value = item.id
+  dragStartY = event.clientY
+  dragMoved = false
+  ;(event.currentTarget as HTMLElement).setPointerCapture?.(event.pointerId)
+
+  window.addEventListener('pointermove', moveDrag)
+  window.addEventListener('pointerup', stopDrag, { once: true })
+  window.addEventListener('pointercancel', cancelDrag, { once: true })
+}
+
+function moveDrag(event: PointerEvent) {
+  if (draggingId.value === null) return
+  event.preventDefault()
+
+  if (Math.abs(event.clientY - dragStartY) > 6) {
+    dragMoved = true
+  }
+
+  const target = document.elementFromPoint(event.clientX, event.clientY)
+  const row = target instanceof HTMLElement ? target.closest<HTMLElement>('[data-accompaniment-id]') : null
+  const targetId = Number(row?.dataset.accompanimentId || 0)
+  if (!targetId || targetId === draggingId.value) return
+
+  const fromIndex = accompaniments.value.findIndex((item) => item.id === draggingId.value)
+  const toIndex = accompaniments.value.findIndex((item) => item.id === targetId)
+  if (fromIndex < 0 || toIndex < 0) return
+
+  const nextItems = [...accompaniments.value]
+  const [movedItem] = nextItems.splice(fromIndex, 1)
+  nextItems.splice(toIndex, 0, movedItem)
+  accompaniments.value = nextItems
+}
+
+function stopDrag() {
+  window.removeEventListener('pointermove', moveDrag)
+  window.removeEventListener('pointercancel', cancelDrag)
+  const shouldSave = dragMoved
+  draggingId.value = null
+  window.setTimeout(() => {
+    dragMoved = false
+  }, 250)
+
+  if (shouldSave) {
+    saveOrder()
+  }
+}
+
+function cancelDrag() {
+  window.removeEventListener('pointermove', moveDrag)
+  window.removeEventListener('pointerup', stopDrag)
+  draggingId.value = null
+  dragMoved = false
+  refreshList().catch(() => null)
+}
+
+function handleMediaClick(event: MouseEvent) {
+  if (!dragMoved) return
+  event.preventDefault()
+  dragMoved = false
+}
+
+async function saveOrder() {
+  try {
+    const ids = accompaniments.value.map((item) => item.id)
+    await $fetch('/api/accompaniments/reorder', {
+      method: 'POST',
+      body: { ids }
+    })
+    accompaniments.value = accompaniments.value.map((item, index) => ({ ...item, sortOrder: index }))
+    showToast('伴奏顺序已保存', 'success')
+  } catch (error) {
+    showToast(isUnauthorized(error) ? '请先登录后排序' : '伴奏排序保存失败', 'error')
+    refreshList().catch(() => null)
+  }
 }
 
 function handleUploadClick() {
@@ -363,10 +462,36 @@ function formatTime(seconds: number) {
 
 .list-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
   align-items: center;
   min-height: 54px;
   border-bottom: 1px solid #edf1f5;
+  transition: background-color 120ms ease, opacity 120ms ease;
+}
+
+.list-row.dragging {
+  background: #fff9e8;
+  opacity: 0.78;
+}
+
+.drag-handle {
+  display: grid;
+  width: 30px;
+  height: 38px;
+  place-items: center;
+  border: 0;
+  border-radius: 8px;
+  color: #9aa7b7;
+  background: transparent;
+  font-size: 1.1rem;
+  touch-action: none;
+  cursor: grab;
+}
+
+.drag-handle:active {
+  color: #172033;
+  background: #f1f5f9;
+  cursor: grabbing;
 }
 
 .media-link {

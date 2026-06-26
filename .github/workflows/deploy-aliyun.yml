@@ -195,6 +195,19 @@ jobs:
                 DROP TABLE IF EXISTS "User";
               `)
             }
+            const accompanimentColumns = columns('Accompaniment')
+            if (hasTable('Accompaniment') && !accompanimentColumns.includes('sortOrder')) {
+              db.exec('ALTER TABLE "Accompaniment" ADD COLUMN "sortOrder" INTEGER NOT NULL DEFAULT 0')
+              db.exec(`
+                UPDATE "Accompaniment"
+                SET "sortOrder" = (
+                  SELECT COUNT(*)
+                  FROM "Accompaniment" AS older
+                  WHERE older."userId" IS "Accompaniment"."userId"
+                    AND older."createdAt" > "Accompaniment"."createdAt"
+                )
+              `)
+            }
 
             db.exec(`
               CREATE TABLE IF NOT EXISTS "User" (
@@ -214,6 +227,7 @@ jobs:
                 "duration" REAL NOT NULL DEFAULT 0,
                 "audio" BLOB NOT NULL,
                 "size" INTEGER NOT NULL,
+                "sortOrder" INTEGER NOT NULL DEFAULT 0,
                 "userId" INTEGER,
                 "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,

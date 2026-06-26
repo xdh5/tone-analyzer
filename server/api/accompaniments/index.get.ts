@@ -4,13 +4,17 @@ export default defineEventHandler(async (event) => {
   const user = await requireCurrentUser(event)
   const accompaniments = await prisma.accompaniment.findMany({
     where: { userId: user.id },
-    orderBy: { createdAt: 'desc' },
+    orderBy: [
+      { sortOrder: 'asc' },
+      { createdAt: 'desc' }
+    ],
     select: {
       id: true,
       name: true,
       mimeType: true,
       duration: true,
       size: true,
+      sortOrder: true,
       createdAt: true
     }
   })

@@ -17,6 +17,12 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Missing accompaniment audio' })
   }
 
+  const lastItem = await prisma.accompaniment.findFirst({
+    where: { userId: user.id },
+    orderBy: { sortOrder: 'desc' },
+    select: { sortOrder: true }
+  })
+
   const accompaniment = await prisma.accompaniment.create({
     data: {
       name,
@@ -24,6 +30,7 @@ export default defineEventHandler(async (event) => {
       duration: Number.isFinite(duration) ? duration : 0,
       audio: audioPart.data,
       size: audioPart.data.length,
+      sortOrder: (lastItem?.sortOrder ?? -1) + 1,
       userId: user.id
     },
     select: {
@@ -31,6 +38,7 @@ export default defineEventHandler(async (event) => {
       name: true,
       duration: true,
       size: true,
+      sortOrder: true,
       createdAt: true
     }
   })

@@ -28,6 +28,7 @@ model Accompaniment {
   duration   Float      @default(0)
   audio      Bytes
   size       Int
+  sortOrder  Int         @default(0)
   userId     Int?
   user       User?       @relation(fields: [userId], references: [id])
   recordings Recording[]
