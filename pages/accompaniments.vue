@@ -21,7 +21,7 @@
         ref="fileInput"
         class="visually-hidden"
         type="file"
-        accept="audio/*"
+        accept=".mp3,.m4a,.wav,.aac,.ogg,.webm,audio/mpeg,audio/mp4,audio/x-m4a,audio/wav,audio/aac,audio/ogg,audio/webm"
         @change="uploadAccompaniment"
       />
 
