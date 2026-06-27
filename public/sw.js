@@ -3,6 +3,7 @@ const APP_SHELL = [
   '/',
   '/accompaniments',
   '/recordings',
+  '/stats',
   '/manifest.webmanifest'
 ]
 

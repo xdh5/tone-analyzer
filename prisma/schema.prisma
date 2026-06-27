@@ -32,6 +32,7 @@ model Accompaniment {
   userId     Int?
   user       User?       @relation(fields: [userId], references: [id])
   recordings Recording[]
+  practiceSessions PracticeSession[]
   createdAt  DateTime   @default(now())
   updatedAt  DateTime   @updatedAt
 }
@@ -44,8 +45,25 @@ model User {
   sessions       AuthSession[]
   recordings     Recording[]
   accompaniments Accompaniment[]
+  practiceSessions PracticeSession[]
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
+}
+
+model PracticeSession {
+  id              Int            @id @default(autoincrement())
+  mode            String
+  duration        Float          @default(0)
+  userId          Int
+  accompanimentId Int?
+  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accompaniment   Accompaniment? @relation(fields: [accompanimentId], references: [id], onDelete: SetNull)
+  startedAt       DateTime       @default(now())
+  endedAt         DateTime?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@index([userId, startedAt])
 }
 
 model AuthSession {

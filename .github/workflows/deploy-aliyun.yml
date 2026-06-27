@@ -190,6 +190,7 @@ jobs:
             if (hasTable('User') && !columns('User').includes('username')) {
               db.exec(`
                 DROP TABLE IF EXISTS "AuthSession";
+                DROP TABLE IF EXISTS "PracticeSession";
                 DROP TABLE IF EXISTS "Recording";
                 DROP TABLE IF EXISTS "Accompaniment";
                 DROP TABLE IF EXISTS "User";
@@ -248,6 +249,21 @@ jobs:
                 CONSTRAINT "Recording_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE SET NULL ON UPDATE CASCADE,
                 CONSTRAINT "Recording_accompanimentId_fkey" FOREIGN KEY ("accompanimentId") REFERENCES "Accompaniment" ("id") ON DELETE SET NULL ON UPDATE CASCADE
               );
+
+              CREATE TABLE IF NOT EXISTS "PracticeSession" (
+                "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                "mode" TEXT NOT NULL,
+                "duration" REAL NOT NULL DEFAULT 0,
+                "userId" INTEGER NOT NULL,
+                "accompanimentId" INTEGER,
+                "startedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                "endedAt" DATETIME,
+                "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                CONSTRAINT "PracticeSession_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
+                CONSTRAINT "PracticeSession_accompanimentId_fkey" FOREIGN KEY ("accompanimentId") REFERENCES "Accompaniment" ("id") ON DELETE SET NULL ON UPDATE CASCADE
+              );
+              CREATE INDEX IF NOT EXISTS "PracticeSession_userId_startedAt_idx" ON "PracticeSession"("userId", "startedAt");
 
               CREATE TABLE IF NOT EXISTS "AuthSession" (
                 "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,

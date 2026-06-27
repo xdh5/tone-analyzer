@@ -67,6 +67,15 @@
           </span>
           <i class="bi bi-chevron-right"></i>
         </NuxtLink>
+
+        <NuxtLink class="module-row" to="/stats">
+          <span class="module-icon"><i class="bi bi-bar-chart-line"></i></span>
+          <span class="module-copy">
+            <strong>练习统计</strong>
+            <small>查看每日练习和伴奏次数</small>
+          </span>
+          <i class="bi bi-chevron-right"></i>
+        </NuxtLink>
       </nav>
     </section>
   </main>

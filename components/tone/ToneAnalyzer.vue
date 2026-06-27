@@ -193,6 +193,7 @@ let canvasResizeObserver: ResizeObserver | null = null
 let gridCacheCanvas: HTMLCanvasElement | null = null
 let gridCacheWidth = 0
 let gridCacheRatio = 0
+let practiceSessionId: number | null = null
 
 const boardHeight = NOTE_COUNT * ROW_HEIGHT
 
@@ -272,6 +273,7 @@ onMounted(async () => {
 })
 
 onBeforeUnmount(() => {
+  finishPracticeSession(true)
   pause()
   stopRecordingPlayback()
   stopMicrophone()
@@ -317,6 +319,7 @@ async function start() {
     await audioContext.resume()
   }
 
+  await ensurePracticeSession()
   stopRecordingPlayback()
   resumeClock()
   isRunning.value = true
@@ -358,10 +361,13 @@ function pause() {
   backingAudioRef.value?.pause()
   cancelAnimationFrame(rafId)
   rafId = 0
+  updatePracticeSession()
   draw()
 }
 
 function clearTrack() {
+  if (isRunning.value) pause()
+  finishPracticeSession()
   pitchPoints = []
   hasVoice.value = false
   elapsed.value = 0
@@ -419,8 +425,53 @@ function handleBackingEnded() {
     pauseRecordingSegment()
     cancelAnimationFrame(rafId)
     rafId = 0
+    finishPracticeSession()
     draw()
   }
+}
+
+async function ensurePracticeSession() {
+  if (practiceSessionId || isReadOnlyPlayback.value) return
+
+  try {
+    const response = await $fetch<{ data: { id: number } }>('/api/practice-sessions', {
+      method: 'POST',
+      body: {
+        mode: isAccompanimentMode.value ? 'practice' : 'record',
+        accompanimentId: isAccompanimentMode.value ? accompanimentId.value : undefined
+      }
+    })
+    practiceSessionId = response.data.id
+  } catch {
+    practiceSessionId = null
+  }
+}
+
+function updatePracticeSession() {
+  if (!practiceSessionId) return
+  void $fetch(`/api/practice-sessions/${practiceSessionId}`, {
+    method: 'PATCH',
+    body: { duration: recordingDuration.value }
+  }).catch(() => {})
+}
+
+function finishPracticeSession(useBeacon = false) {
+  if (!practiceSessionId) return
+
+  const id = practiceSessionId
+  const duration = recordingDuration.value
+  practiceSessionId = null
+
+  if (useBeacon && navigator.sendBeacon) {
+    const body = new Blob([JSON.stringify({ duration })], { type: 'application/json' })
+    navigator.sendBeacon(`/api/practice-sessions/${id}/finish`, body)
+    return
+  }
+
+  void $fetch(`/api/practice-sessions/${id}/finish`, {
+    method: 'POST',
+    body: { duration }
+  }).catch(() => {})
 }
 
 function startRecordingSegment() {
